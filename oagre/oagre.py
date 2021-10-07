@@ -62,6 +62,37 @@ class OaGRe(BaseEstimator, RegressorMixin):
         if not is_regressor(self.regressor):
             raise ValueError(f"`regressor` has to be a regressor. Received instance of {type(self.regressor)} instead.")
 
+        # Train the base regressor
+        self.base_regressor_ = clone(self.regressor)
+        self.base_regressor_.fit( X, y, sample_weight=sample_weight)
+
+        preds = self.base_regressor_.predict(X)
+        errors = preds - y
+
+        self.threshold = 3
+        self.depth_ = 0
+        self.classifiers_ = []
+        self.regressors_ = []
+        continue = True
+
+        while continue:
+            mu_ = np.mean(errors)
+            sigma_ = np.std(errors)
+            targs = np.ones(len(y))
+            upper = mu_ + self.threshold * sigma_
+            lower = mu_ - self.threshold * sigma_
+            targs[errors>upper] = 0
+            targs[errors<lower] = 0
+            self.classifiers_.append( clone(self.classifier) )            
+            self.classifiers_[self.depth_].fit(X, targs, sample_weight)
+
+            # Now extract just the records within the bounds to train the next regression model
+            y_temp = errors[targs==1]
+            X_temp = X[targs==1]
+            self.regressors_.append( clone(self.regressor) )
+
+            self.depth_ = self.depth_ + 1
+
         try:
             check_is_fitted(self.classifier)
             self.classifier_ = self.classifier
