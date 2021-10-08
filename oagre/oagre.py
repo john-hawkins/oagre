@@ -8,11 +8,15 @@ class OaGRe(BaseEstimator, RegressorMixin):
     """
     OaGRe : Outlier adjusted Gradient-Boosted Regressor
     A meta regressor for building regression models.
+    Like standard GBM the ensemble is constructed by iteratively predicting and
+    correcting the residuals. 
     ----------
     classifier : Any, scikit-learn classifier
-        A classifier that answers the question "Are the remaining residuals due to outliers?".
+        A classifier that answers the question:
+         "Are the remaining residuals predictable or due to outliers?".
     regressor : Any, scikit-learn regressor
-        A regressor for predicting the target. 
+        A base regressor for generating each layer of the GBM by
+        predicting the target or the residuals.
 
     Examples
     --------
@@ -29,11 +33,15 @@ class OaGRe(BaseEstimator, RegressorMixin):
     >>> ogre.predict(X)[:5]
     """
 
-    def __init__(self, classifier, regressor) -> None:
+    #####################################################################
+    def __init__(self, classifier, regressor, lr=0.1) -> None:
         """Initialize the meta-model with base models."""
         self.classifier = classifier
         self.regressor = regressor
+        self.lr = lr
+        self.n_estimators = 100
 
+    #####################################################################
     def fit(self, X, y, sample_weight=None):
         """
         Fit the model.
@@ -58,9 +66,9 @@ class OaGRe(BaseEstimator, RegressorMixin):
         self._check_n_features(X, reset=True)
         if not is_classifier(self.classifier):
             raise ValueError(
-                f"`classifier` has to be a classifier. Received instance of {type(self.classifier)} instead.")
+                f"`classifier` has to be a classifier. Instance of {type(self.classifier)} received.")
         if not is_regressor(self.regressor):
-            raise ValueError(f"`regressor` has to be a regressor. Received instance of {type(self.regressor)} instead.")
+            raise ValueError(f"`regressor` has to be a regressor. Instance of {type(self.regressor)} received.")
 
         # Train the base regressor
         self.base_regressor_ = clone(self.regressor)
@@ -68,7 +76,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
 
         preds = self.base_regressor_.predict(X)
         errors = preds - y
-
+        preds_buffer = preds
         self.threshold = 3
         self.depth_ = 0
         self.classifiers_ = []
@@ -85,40 +93,26 @@ class OaGRe(BaseEstimator, RegressorMixin):
             targs[errors<lower] = 0
             self.classifiers_.append( clone(self.classifier) )            
             self.classifiers_[self.depth_].fit(X, targs, sample_weight)
+            temp = self.classifiers_[self.depth_].predict_proba(X)[:,1]
 
             # Now extract just the records within the bounds to train the next regression model
             y_temp = errors[targs==1]
             X_temp = X[targs==1]
             self.regressors_.append( clone(self.regressor) )
-
+            self.regressors_[self.depth_].fit(X_temp, y_temp, sample_weight)
+            temp2 = self.regressors_[self.depth_].predict(X)
+            mypreds = temp * temp2
+            current_preds = preds_buffer - self.lr * mypreds            
+            preds_buffer = current_preds
+            errors = preds_buffer - y
             self.depth_ = self.depth_ + 1
-
-        try:
-            check_is_fitted(self.classifier)
-            self.classifier_ = self.classifier
-        except NotFittedError:
-            self.classifier_ = clone(self.classifier)
-            self.classifier_.fit(X, y != 0, sample_weight=sample_weight)
-
-        non_zero_indices = np.where(self.classifier_.predict(X) == 1)[0]
-
-        if non_zero_indices.size > 0:
-            try:
-                check_is_fitted(self.regressor)
-                self.regressor_ = self.regressor
-            except NotFittedError:
-                self.regressor_ = clone(self.regressor)
-                self.regressor_.fit(
-                    X[non_zero_indices],
-                    y[non_zero_indices],
-                    sample_weight=sample_weight[non_zero_indices] if sample_weight is not None else None
-                )
-        else:
-            raise ValueError(
-                "The predicted training labels are all zero, making the regressor obsolete. Change the classifier or use a plain regressor instead.")
+            if self.depth_ == self.n_estimators:
+                continue = False
 
         return self
 
+ 
+    #####################################################################
     def predict(self, X):
         """
         Get predictions.
@@ -135,11 +129,14 @@ class OaGRe(BaseEstimator, RegressorMixin):
         X = check_array(X)
         self._check_n_features(X, reset=False)
 
-        output = np.zeros(len(X))
-        non_zero_indices = np.where(self.classifier_.predict(X))[0]
+        preds = self.base_regressor_.predict(X)
+        index = 0
+        while index < self.depth_:
+            temp = self.classifiers_[index].predict_proba(X)[:,1]
+            temp2 = self.regressors_[index].predict(X)
+            mypreds = temp * temp2
+            preds = preds - self.lr * mypreds
+            index = index + 1
 
-        if non_zero_indices.size > 0:
-            output[non_zero_indices] = self.regressor_.predict(X[non_zero_indices])
-
-        return output
+        return preds
 
