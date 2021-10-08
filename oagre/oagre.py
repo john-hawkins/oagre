@@ -34,12 +34,12 @@ class OaGRe(BaseEstimator, RegressorMixin):
     """
 
     #####################################################################
-    def __init__(self, classifier, regressor, lr=0.1) -> None:
+    def __init__(self, classifier, regressor, lr=0.05) -> None:
         """Initialize the meta-model with base models."""
         self.classifier = classifier
         self.regressor = regressor
         self.lr = lr
-        self.n_estimators = 100
+        self.n_estimators = 300
 
     #####################################################################
     def fit(self, X, y, sample_weight=None):
@@ -77,13 +77,13 @@ class OaGRe(BaseEstimator, RegressorMixin):
         preds = self.base_regressor_.predict(X)
         errors = preds - y
         preds_buffer = preds
-        self.threshold = 3
+        self.threshold = 4
         self.depth_ = 0
         self.classifiers_ = []
         self.regressors_ = []
-        continue = True
+        process = True
 
-        while continue:
+        while process:
             mu_ = np.mean(errors)
             sigma_ = np.std(errors)
             targs = np.ones(len(y))
@@ -106,8 +106,9 @@ class OaGRe(BaseEstimator, RegressorMixin):
             preds_buffer = current_preds
             errors = preds_buffer - y
             self.depth_ = self.depth_ + 1
+            self.threshold = 4 - (2 * self.depth_/self.n_estimators)
             if self.depth_ == self.n_estimators:
-                continue = False
+                process = False
 
         return self
 
