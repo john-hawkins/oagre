@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import optimize
 from sklearn.base import BaseEstimator, RegressorMixin, clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted, check_X_y, check_array
 from sklearn.exceptions import NotFittedError
@@ -34,12 +35,12 @@ class OaGRe(BaseEstimator, RegressorMixin):
     """
 
     #####################################################################
-    def __init__(self, classifier, regressor, lr=0.05) -> None:
+    def __init__(self, classifier, regressor, lr=0.1) -> None:
         """Initialize the meta-model with base models."""
         self.classifier = classifier
         self.regressor = regressor
         self.lr = lr
-        self.n_estimators = 300
+        self.n_estimators = 100
 
     #####################################################################
     def fit(self, X, y, sample_weight=None):
@@ -81,6 +82,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
         self.depth_ = 0
         self.classifiers_ = []
         self.regressors_ = []
+        self.gamma_ = []
         process = True
 
         while process:
@@ -102,7 +104,16 @@ class OaGRe(BaseEstimator, RegressorMixin):
             self.regressors_[self.depth_].fit(X_temp, y_temp, sample_weight)
             temp2 = self.regressors_[self.depth_].predict(X)
             mypreds = temp * temp2
-            current_preds = preds_buffer - self.lr * mypreds            
+            def fit_gamma(x):
+                temp1 = preds_buffer - x * mypreds
+                temp2 = temp1 - y
+                return abs(temp2).mean()
+            rez = optimize.minimize_scalar(fit_gamma)
+            if rez.success:
+                self.gamma_[self.depth_] = rez.x
+            else:
+                self.gamma_[self.depth_] = 1
+            current_preds = preds_buffer - self.lr * self.gamma_[self.depth_] * mypreds            
             preds_buffer = current_preds
             errors = preds_buffer - y
             self.depth_ = self.depth_ + 1
