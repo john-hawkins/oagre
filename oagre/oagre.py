@@ -110,9 +110,9 @@ class OaGRe(BaseEstimator, RegressorMixin):
                 return abs(temp2).mean()
             rez = optimize.minimize_scalar(fit_gamma)
             if rez.success:
-                self.gamma_[self.depth_] = rez.x
+                self.gamma_.append(rez.x)
             else:
-                self.gamma_[self.depth_] = 1
+                self.gamma_.append(1)
             current_preds = preds_buffer - self.lr * self.gamma_[self.depth_] * mypreds            
             preds_buffer = current_preds
             errors = preds_buffer - y
@@ -147,7 +147,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
             temp = self.classifiers_[index].predict_proba(X)[:,1]
             temp2 = self.regressors_[index].predict(X)
             mypreds = temp * temp2
-            preds = preds - self.lr * mypreds
+            preds = preds - self.lr * self.gamma_[index] * mypreds
             index = index + 1
 
         return preds
