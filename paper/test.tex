@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+
+\begin{document}
+
+
+\begin{algorithm}
+\caption{Gradient Boost}\label{gb}
+\begin{algorithmic}[1]
+\State $\displaystyle F_0(x) = arg min_{\rho} \sum_{i=1}^N \mathcal{L}(y_i, \rho) $
+\For {$m$ = 1 to $M$}
+\State $\displaystyle \tilde{y}_i = - \left[ \frac{\partial \mathcal{L}(y_i, F(x_i)) }{\partial  F(x_i)} \right]_{F(x) =F_{m-1}(x)}, i \in [1,N]  $
+\State $\displaystyle a_m = arg min_a \sum_{i \in \Omega} \mathcal{L}(\tilde{y}_i, h(x_i, a)) $
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Blinkered Gradient Boost}\label{bgm}
+\begin{algorithmic}[1]
+\State $\displaystyle F_0(x) = arg min_{\rho} \sum_{i=1}^N \mathcal{L}(y_i, \rho) $
+\For {$m$ = 1 to $M$} 
+\State $B_m = \mathcal{B} - (m-1)\delta $
+\State $\displaystyle \Omega = \left\{ i \in [1,N] \ | \ \mathcal{L}(y_i, F_{m-1}(x_i)) < B_m \right\} $
+\State $\displaystyle \tilde{y}_i = - \left[ \frac{\partial \mathcal{L}(y_i, F(x_i)) }{\partial  F(x_i)} \right]_{F(x) =F_{m-1}(x)}, i \in \Omega  $
+\State $\displaystyle a_m = arg min_a \sum_{i \in \Omega} \mathcal{L}(\tilde{y}_i, h(x_i, a)) $
+
+\EndFor
+
+\Procedure{MyProcedure}{}
+\State $\textit{stringlen} \gets \text{length of }\textit{string}$
+\State $i \gets \textit{patlen}$
+\BState \emph{top}:
+\If {$i > \textit{stringlen}$} \Return false
+\EndIf
+\State $j \gets \textit{patlen}$
+\BState \emph{loop}:
+\If {$\textit{string}(i) = \textit{path}(j)$}
+\State $j \gets j-1$.
+\State $i \gets i-1$.
+\State \textbf{goto} \emph{loop}.
+\State \textbf{close};
+\EndIf
+\State $i \gets i+\max(\textit{delta}_1(\textit{string}(i)),\textit{delta}_2(j))$.
+\State \textbf{goto} \emph{top}.
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Some text in between them
+
+
+\end{document} 

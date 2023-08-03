@@ -1,0 +1,160 @@
+Abstract
+
+Gradient boosting is a general machine learning technique for iteratively building 
+a model by fitting the residuals of an existing model. The performance of which
+can be fine tuned through meta-paramters that control the contribution of each
+subsequent model. In spite of its genrality as a technique, there are several reasons why it may
+fail to adequately capture a given task. One of these reasons is the presence of 
+excessive noise in the training data. In this paper we propose a technique that will
+mitigate the impact of noise under certain circumstances. 
+By making several non-standard assumptions about the way noise is often
+distributed in real world data, we are able to derive a simple variation of
+the gradient boosting algorithm with demonstrable utility. 
+We conduct experiments with several public data sets
+and show that our approach can result in improved accuracy on some problems when compared with 
+several common gradient boosting implementations. While the approach is not a universal 
+improvement, due to its unique treatment of specific kinds of noise it 
+represents a novel tool for machine learning practitioners.
+
+
+Introduction
+
+Gradient Boosting has proven itself to be one of the most significant advances in
+the field of machine learning in recent history. Its utility in providing accurate predictions
+for supevised learning is so strong that
+it has come dominate the field of competitive machine learning 
+(as explified by the competitions run by Kaggle) \cite{kaggle_ref:2017}.
+In spite of its resounding success in beating other machine learning approaches, 
+there remain a range of specific circumstances in which
+gradient boosting (and other algorithms) will fail to provide adequate reaults. One of these
+circumstances is the presence of noise. For gradient boosting the presence of noise interferes
+with its capacity to improve performance because the residuals can become 
+dominated by the presence of noise \cite{}.
+ 
+Many variations of the gradient boosting algorithm have appeeared, for example
+XGboost and LiteGBM, both of which impove the comptational efficiency, as well as the effectiveness
+of the base learners and the parameterisation of their combination.
+However, in all cases the theoretical underpinnings of the gradient boosting algorithm
+remain unchanged. The algorithm consists of learning an ensemble of base learners
+as additive combination. In each iteration the new model is trained to predict the
+residuals of the preceding ensemble. Each weak learner is added to the ensemble with
+a small weighting, usually called a learning rate, which prevents over-fitting. 
+
+In this paper we develop a variation of the gradient boosting algorithm by making
+several non-standard assumptions about the noise present in the data. 
+Firstly we assume that the noise is not randomly distributed with respect to the 
+features or predictors. This assumption is contrary to the standard expression for the learning problem, 
+an example of which is shown in equation \ref{learning_problem} taken from Friedman 1999 \cite{friedman_1999}.
+
+\begin{equation}
+y_i = F^*(x_i) + \epsilon_i
+\end{equation}
+
+This expression defines the target variable of instance i $y_i$ as a function of the fetaures vector $x$
+plus some Gaussian noise $\epsilon_i$. It is generally assumed that the noise term is independent of the 
+feature vector X. It may correspond to inherent noise, or be due to unobserved causal factores that are
+not present in the features, and hence limit our ability to perfectly represent the target using the given
+features.
+ 
+We modifying this assumption in the following way: the noise term $\epsilon_i$ could be dependent upon the
+feature vector $x_i$. In real world processes there are multiple reasons
+why noise might be correlated with predictors. Noise can come from sampling problems,
+which are not uniformly distributed. Noise might be due to limitations of the devices
+or methodology used to collect data, which again tend not to be uniformly distributed.
+Most noise is due to some physical process, which itself is regulated by variables,
+if any of the variables that regulate the noise are present as features then we should 
+expect the statistical structure of the noise to vary over the features space.
+
+When we are training a model to predict $y_i$, then we typically depict the fit of the model
+using a similar equation.
+
+
+\begin{equation}
+\yhat_i = F^*(x_i) + \epsilon_i
+\end{equation}
+
+Our second assumption builds on the first. We 
+assume that there will be some correlation between the magnitude of the error made
+by the model and the presence of noise. This assumption requires only that our feature
+vector and model be rich enough that we expect the model to be able to learn the 
+relationship between dependent and independent variables well enough that noisier samples stand out. 
+In the absence of noise we expect error to be low, when noise is present we expect it to be high.
+Because the first assumption gives us non-uniform noise, we therefore expect the presence
+of a noise gradient that is correlated with the error.
+
+Combining these two assumptions and the general idea of a gradient boosting leads us to
+an alternative learning algorithm we call Blinkered Gradient Boosting. 
+We draw on the analogy of a racehorse wearing 
+leather blinkers which prevent if from being distracted from activity on the edge
+of the racecourse. The metaphorical algorithmic blinkers prevent the model from being
+distracted by the large residual errors that are likely due to noise and hence unsolvable.
+ 
+
+Method
+
+The core idea behind blinkered gradient boosting is that at each iteration of the training
+algorithm we exclude some portion of the samples due to the fact that their error is beyond
+the limits set by the blinkers. These blinkers are set at an outer bound with a new meta-paramter.
+They are gradually reduced in size by factor set by an additional meta-parametrs, or set to 
+reduce by an amount set by the number of training epochs.
+
+The blinkers need not be set at equal distances from zero, however we do assume that the lower blinker
+is below zero and the second above. In general we are attempting to ensure that the error is evenly
+distributed around zero with reduced magnitude.
+
+As well as excluding certain examples from the training data, we also train a binary classifier
+to predict whether a give example belongs to the set of data points whose error will be within those
+bounds. Ideally, as we apply the sequence of models to new data we do not want to attempt to correct
+predictions whose error is likley to be due to noise.
+
+The simplest version of the algorithm is shown below, as an adaptation of the version described by
+Friedman 1999 \cite{firedman_1999}.
+
+
+ 
+Following from Friedman we define the algorithm in terms of an arbitrary loss function, illustrating
+that the technique is flexible and can be applied to any problem in which the notion of feature dependent
+noise is deemed appropriate. Our implementation is specific to our purposes, which is the forecasting
+of timeseries data with a large number of external regressors.
+
+We implement our method as an S4 class in R, that wraps around a collection of H2O regression trees.
+H2O was chosen to provide the base learners because we have been dealing with large distributed data 
+sets and required a method to implement and test algorithms on these data sets.
+
+  
+
+Evaluation
+
+We take three large regression data sets that are publically available 
+and apply our technique alongside the gradient boosting implementation
+provided with H2O. We use default parameters and several common alternatives
+for the sake of a rounded comparison. 
+
+We evaluate the performance using Mean Absolute Error on a hold out data set.
+The models are trained using a early stopping on an validation data set. Both
+the validation and hold out test data were created as out-of-time data to reflect
+the kinds of real world processes we are interested in. 
+
+The code for the evaluation is provided in our GitHub repository. 
+
+
+Note, that due to liscensing restrictions we are unable to dsitribute the data sets
+themselves. In order to run
+it you need to download the public data sets from their sources (shown in Table \ref{}).
+
+Lending CLub
+https://www.lendingclub.com/info/download-data.action
+
+Walmart Sales Data
+https://www.kaggle.com/c/walmart-recruiting-store-sales-forecasting/data
+
+
+
+
+
+
+Results
+
+Conclusion
+
+
