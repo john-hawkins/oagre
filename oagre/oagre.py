@@ -25,12 +25,10 @@ class OaGRe(BaseEstimator, RegressorMixin):
     >>> from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
     >>> np.random.seed(0)
     >>> ogre = OaGRe(
-    ...    classifier=DecisionTreeClassifier(random_state=0),
-    ...    regressor=DecisionTreeRegressor(random_state=0)
+    ...    classifier=DecisionTreeClassifier(max_depth=5, random_state=0),
+    ...    regressor=DecisionTreeRegressor(max_depth=5, random_state=0)
     ... )
     >>> ogre.fit(X, y)
-    OaGRe(classifier=DecisionTreeClassifier(random_state=0),
-                          regressor=DecisionTreeRegressor(random_state=0))
     >>> ogre.predict(X)[:5]
     """
 
@@ -40,7 +38,8 @@ class OaGRe(BaseEstimator, RegressorMixin):
         self.classifier = classifier
         self.regressor = regressor
         self.lr = lr
-        self.n_estimators = 100
+        self.n_estimators = 20
+        self.class_threshold = 0.5
 
     #####################################################################
     def fit(self, X, y, sample_weight=None):
@@ -77,49 +76,85 @@ class OaGRe(BaseEstimator, RegressorMixin):
 
         preds = self.base_regressor_.predict(X)
         errors = preds - y
+        # DEBUGGING PRINT STATEMENTS - TODO ADD A LOGGING FLAG
+        #print("Base Model Mean Absolute Error: ", np.absolute(errors).mean() )
+        #print("           Max Absolute Error: ", np.absolute(errors).max() )
         preds_buffer = preds
-        self.threshold = 4
+        self.threshold = 3
         self.depth_ = 0
         self.classifiers_ = []
         self.regressors_ = []
         self.gamma_ = []
-        process = True
+        # If the base model has no residual error then we stop processing
+        if np.absolute(errors).sum() == 0.0:
+            process = False 
+        else:
+            process = True
 
         while process:
             mu_ = np.mean(errors)
             sigma_ = np.std(errors)
             targs = np.ones(len(y))
-            upper = mu_ + self.threshold * sigma_
-            lower = mu_ - self.threshold * sigma_
+            # #########################################################
+            # We are assuming that the error is centred on zero
+            # TODO: Implement tests and alternative approaches
+            upper = 0.0 + self.threshold * sigma_
+            lower = 0.0 - self.threshold * sigma_
             targs[errors>upper] = 0
             targs[errors<lower] = 0
+            if targs.mean()==1.0:
+                maxerr = errors.max()
+                minerr = errors.min()
+                targs[errors==maxerr] = 0
+                if minerr < 0:
+                    targs[errors==minerr] = 0
             self.classifiers_.append( clone(self.classifier) )            
             self.classifiers_[self.depth_].fit(X, targs, sample_weight)
-            temp = self.classifiers_[self.depth_].predict_proba(X)[:,1]
-
-            # Now extract just the records within the bounds to train the next regression model
+            try:
+                temp1 = self.classifiers_[self.depth_].predict_proba(X)
+                if temp1.shape[1]>1:
+                    temp = temp1[:,1]
+                else:
+                    temp = temp1[:,0]
+            except:
+                print("ERROR in OAGRE: ")
+                print(" Targets length", str(len(targs)), " mean value", str(targs.mean()) )
+                print(self.classifiers_)
+                print(temp1)
+                print(temp.shape)
+            # ########################################################################
+            # We have experimented with thresholding the probabilities
+            # TODO: Add this as an optional flag
+            #temp = np.where(temp>self.class_threshold, 1.0, 0.0)
+            # ####################################################################################
+            # Now extract just the records with error within bounds to train the residual regression model
             y_temp = errors[targs==1]
             X_temp = X[targs==1]
+            #print("OaGRe Excluded Data:", str(len(errors[targs==0])))
             self.regressors_.append( clone(self.regressor) )
             self.regressors_[self.depth_].fit(X_temp, y_temp, sample_weight)
             temp2 = self.regressors_[self.depth_].predict(X)
             mypreds = temp * temp2
             def fit_gamma(x):
-                temp1 = preds_buffer - x * mypreds
+                temp1 = preds_buffer - x * self.lr * mypreds
                 temp2 = temp1 - y
-                return abs(temp2).mean()
+                return (temp2*temp2).mean()
             rez = optimize.minimize_scalar(fit_gamma)
             if rez.success:
                 self.gamma_.append(rez.x)
             else:
                 self.gamma_.append(1)
-            current_preds = preds_buffer - self.lr * self.gamma_[self.depth_] * mypreds            
+            # WE HAVE REMOVED THE USE OF THE LEARNING RATE FOR MORE TESTING           
+            # current_preds = preds_buffer - self.lr * self.gamma_[self.depth_] * mypreds            
+            current_preds = preds_buffer - mypreds
             preds_buffer = current_preds
             errors = preds_buffer - y
             self.depth_ = self.depth_ + 1
-            self.threshold = 4 - (2 * self.depth_/self.n_estimators)
+            self.threshold = 3 - (self.depth_/self.n_estimators)
             if self.depth_ == self.n_estimators:
                 process = False
+            if np.absolute(errors).sum() == 0.0:
+                process = False                  # If there is no residual, then we stop processing
 
         return self
 
@@ -142,12 +177,28 @@ class OaGRe(BaseEstimator, RegressorMixin):
         self._check_n_features(X, reset=False)
 
         preds = self.base_regressor_.predict(X)
+        # DEBUGGING PRINT STATEMENTS
+        #print("Mean base pred:", preds.mean())
         index = 0
         while index < self.depth_:
-            temp = self.classifiers_[index].predict_proba(X)[:,1]
+            temp1 = self.classifiers_[index].predict_proba(X)
+            if temp1.shape[1]>1:
+                temp = temp1[:,1]
+            else:
+                temp = temp1[:,0]
+            # THRESHOLDING EXPERIMENT
+            #temp = np.where(temp>self.class_threshold, 1.0, 0.0)
             temp2 = self.regressors_[index].predict(X)
             mypreds = temp * temp2
-            preds = preds - self.lr * self.gamma_[index] * mypreds
+            adjustment = mypreds # * self.lr * self.gamma_[index]
+            newpreds = preds - adjustment
+            # DEBUGGING PRINT STATEMENTS
+            # print("Proportion of records to adjust:", temp.mean())
+            # print("Mean adjustment:", adjustment.mean())
+            # print("Min adjustment:", adjustment.min())
+            # print("Max adjustment:", adjustment.max())
+            # print("After depth", index, " preds:", newpreds.mean())
+            preds = newpreds
             index = index + 1
 
         return preds
