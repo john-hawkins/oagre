@@ -1,7 +1,7 @@
 # OaGRe
 
 ```
-Status: Non-functional, in-development
+Status: Functional - 
 ```
 
 A meta-learning model for regression on noisy data with outliers
@@ -23,6 +23,25 @@ the inspiring open-source library that informed much of the development here.
 
 The package will be released via PyPi and can installed via pip.
 
-Alternatively you can install from source code:
+Alternatively you can install from source code
 
+### Experiments
+
+We have conducted experiments using synthetically generated data with highly non-linear 
+regression problems and heteroscedastic noise. Executed using the script [scripts/run_experiment.py]
+and the analysed with the script [scripts/analyse.py].
+
+## How to cite
+
+Paper Submitted to AICI 2024 - Awaiting Review
+
+```bibtex
+@InProceedings{Hawkins2024,
+   author = {John Hawkins},
+   year = {2024},
+   title = {OAGRE: Outlier Attenuated Gradient Boosted Regression},
+   booktitle = {},
+   month = {},
+}
+```
 
