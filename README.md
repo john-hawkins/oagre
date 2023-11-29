@@ -4,7 +4,7 @@
 Status: Functional - 
 ```
 
-A meta-learning model for regression on noisy data with outliers
+A meta-learning model for regression on noisy data with heteroscedasticity.
 
 This work was initially started in 2017 while working with a large scale
 noisy regression problem. The initial experiments were done in R and abandoned
@@ -27,13 +27,14 @@ Alternatively you can install from source code
 
 ### Experiments
 
-We have conducted experiments using synthetically generated data with highly non-linear 
-regression problems and heteroscedastic noise. Executed using the script [scripts/run_experiment.py]
-and the analysed with the script [scripts/analyse.py].
+We have conducted experiments using synthetically generated data for highly non-linear 
+regression problems and multiple variations of heteroscedastic noise. 
+These experiments can be executed using the script [run_experiment.py](scripts/run_experiment.py)
+and the analysed with the script [scripts/analyse.py](scripts/analyse.py).
 
 ## How to cite
 
-Paper Submitted to AICI 2024 - Awaiting Review
+Paper to be published (under revision)
 
 ```bibtex
 @InProceedings{Hawkins2024,
