@@ -16,14 +16,15 @@ with open("README.md", "rb") as f:
 
 base_packages = [
     "scikit-learn>=0.24.1",
-    "numpy"
+    "numpy",
+    "scipy"
 ]
 
 setup(
     name = "oagre",
     packages = ["oagre"],
     license = "MIT",
-    install_requires = base_packages
+    install_requires = base_packages,
     include_package_data=True,
     version = version,
     description = "Python library for building gradient boosted meta-learner regression.",
