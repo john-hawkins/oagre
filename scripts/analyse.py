@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-df = pd.read_csv("results_summary_file_full_new.csv")
+df = pd.read_csv("results/results_summary_file_full_new.csv")
 
 import matplotlib.pyplot as plt
 
