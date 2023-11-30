@@ -1,5 +1,10 @@
 # OAGRE : Outlier Attenuated Gradient Boosting Regression
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/oagre.svg)](https://pypi.org/project/oagre)
+[![Documentation Status](https://readthedocs.org/projects/oagre/badge/?version=latest)](https://oagre.readthedocs.io/en/latest/?badge=latest)
+
+
 ```
 Status: Functional - 
 ```
