@@ -1,4 +1,4 @@
-# OaGRe
+# OAGRE : Outlier Attenuated Gradient Boosting Regression
 
 ```
 Status: Functional - 

@@ -1,4 +1,4 @@
 __version__ = "0.1.0"
 
-from .oagre import OaGRe
+from .oagre import OAGRE
 

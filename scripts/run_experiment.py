@@ -7,7 +7,7 @@ from scipy.special import expit
 from sklearn.model_selection import train_test_split
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import GradientBoostingRegressor
-from oagre import OaGRe
+from oagre import OAGRE
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -208,7 +208,7 @@ for s in range(samples):
                 rez["DTR"] = dtr_rmse
                 #############################################################
                 try:
-                    oagre = OaGRe(
+                    oagre = OAGRE(
                         classifier=ExtraTreesClassifier(n_estimators=10, max_depth=5, random_state=0), 
                         regressor=ExtraTreesRegressor(n_estimators=10, max_depth=5, random_state=0)
                     )
@@ -220,7 +220,7 @@ for s in range(samples):
                 rez["OAGRE-XT"] = oagre_rmse
                 #############################################################
                 try:
-                    oagre = OaGRe(
+                    oagre = OAGRE(
                         classifier=DecisionTreeClassifier(max_depth=5, random_state=0),
                         regressor=DecisionTreeRegressor(max_depth=5, random_state=0)
                     )

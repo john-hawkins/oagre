@@ -5,9 +5,9 @@ from sklearn.utils.validation import check_is_fitted, check_X_y, check_array
 from sklearn.exceptions import NotFittedError
 
 
-class OaGRe(BaseEstimator, RegressorMixin):
+class OAGRE(BaseEstimator, RegressorMixin):
     """
-    OaGRe : Outlier adjusted Gradient-Boosted Regressor
+    OAGRE : Outlier Attenuated Gradient-Boosted Regressor
     A meta regressor for building regression models.
     Like standard GBM the ensemble is constructed by iteratively predicting and
     correcting the residuals. 
@@ -24,7 +24,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
     >>> import numpy as np
     >>> from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
     >>> np.random.seed(0)
-    >>> ogre = OaGRe(
+    >>> ogre = OAGRE(
     ...    classifier=DecisionTreeClassifier(max_depth=5, random_state=0),
     ...    regressor=DecisionTreeRegressor(max_depth=5, random_state=0)
     ... )
@@ -55,7 +55,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
             Individual weights for each sample.
         Returns
         -------
-        OaGRe
+        OAGRE
             Fitted regressor.
         Raises
         ------
@@ -130,7 +130,7 @@ class OaGRe(BaseEstimator, RegressorMixin):
             # Now extract just the records with error within bounds to train the residual regression model
             y_temp = errors[targs==1]
             X_temp = X[targs==1]
-            #print("OaGRe Excluded Data:", str(len(errors[targs==0])))
+            #print("OAGRE Excluded Data:", str(len(errors[targs==0])))
             self.regressors_.append( clone(self.regressor) )
             self.regressors_[self.depth_].fit(X_temp, y_temp, sample_weight)
             temp2 = self.regressors_[self.depth_].predict(X)
