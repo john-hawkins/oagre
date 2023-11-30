@@ -26,7 +26,7 @@ setup(
     install_requires = base_packages
     include_package_data=True,
     version = version,
-    description = "Python library for gradient boosted regression.",
+    description = "Python library for building gradient boosted meta-learner regression.",
     long_description = long_descr,
     long_description_content_type='text/markdown',
     author = "John Hawkins",
