@@ -46,8 +46,9 @@ Paper to be published (under revision)
    author = {John Hawkins},
    year = {2024},
    title = {OAGRE: Outlier Attenuated Gradient Boosted Regression},
-   booktitle = {},
-   month = {},
+   booktitle = {Proceedings of The Fifth International Conference on Artificial Intelligence and Computational Intelligence (AICI 2024)},
+   month = {Jan},
+   address = {Hanoi, Vietnam}
 }
 ```
 
